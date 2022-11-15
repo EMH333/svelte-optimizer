@@ -1,0 +1,15 @@
+{
+  "name": "svelte-component-optimization",
+  "version": "1.0.0",
+  "description": "The goal of this project is to extract all the properties of Svelte compontents that are used by a piece of code, then set all exposed (except needed internal to component or otherwise) that aren't needed to be constant to reduce bundle size",
+  "main": "scan.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "svelte": "^3.53.1"
+  }
+}
