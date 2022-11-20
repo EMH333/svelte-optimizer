@@ -11,5 +11,8 @@
   "license": "ISC",
   "dependencies": {
     "svelte": "^3.53.1"
+  },
+  "devDependencies": {
+    "simple-svelte-autocomplete": "^2.5.0"
   }
 }

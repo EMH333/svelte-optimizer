@@ -1,4 +1,6 @@
 import { readFileSync } from "fs";
+import path from "path";
+import { compile } from "svelte/compiler";
 
 //get filename from command line
 const filename = process.argv[2];
@@ -6,39 +8,53 @@ const filename = process.argv[2];
 //read file
 const file = readFileSync(filename, "utf8");
 
-// search for import statements
-const imports = file.match(/import\s+.*\s+from\s+["'].*["']/g);
+const { ast } = compile(file, {
+    filename,
+    generate: false,
+});
 
-//console.log("Imports:", imports);
 
-let componentNames = [];
+let components = [];
 
-for (const imp of imports) {
-    // get file being imported from in js
-    const importFile = imp.match(/["'].*["']/)[0].replace(/["']/g, "");
-    if (importFile.endsWith(".svelte")) {
-        //get component name from import statement
-        const componentName = imp.match(/import\s+.*\s+from/)[0].replace(/import\s+|\s+from/g, "");
-        componentNames.push(componentName);
+function walkNode(node) {
+    if (node.type === "InlineComponent") {
+        let component = {
+            name: node.name,
+            attributes: [],
+        };
+        if (node.attributes) {
+            for (let j = 0; j < node.attributes.length; j++) {
+                const attribute = node.attributes[j];
+                //TODO might need to alert if certian attributes are used because it makes it impossible to tell what vars are actually used
+                component.attributes.push(attribute.name);
+            }
+        }
+        components.push(component);
+    }
+
+    if (node.children) {
+        for (let i = 0; i < node.children.length; i++) {
+            const child = node.children[i];
+            walkNode(child);
+        }
     }
 }
 
-//console.log("Component Names:", componentNames);
-
-for (const comp of componentNames) {
-    const instances = file.match(new RegExp(`<\s*${comp}.*?\/>`, "gs"));
-
-    //extract properties set on component
-    //TODO use AST from svelte to get all properties (and potentially custom elements)
-    const props = instances.map(inst => {
-        const props = [...inst.matchAll(/(\w+)\s*?=\s*?{/g)];
-        return props.map(m => m[1]);
-    }).flat();
-
-    // dedupe props
-    const uniqueProps = [...new Set(props)];
-
-    console.log(comp, uniqueProps);
+walkNode(ast.html);
+//console.log(JSON.stringify(components, null, 2));
+for(let i = 0; i < components.length; i++){
+    const component = components[i];
+    // find import for component.name
+    const importStatement = file.match(new RegExp(`import\\s+${component.name}\\s+from\\s+['"](.+)['"]`));
+    if(importStatement){
+        const importPath = importStatement[1];
+        const absolutePath = await import.meta.resolve(importPath, "file://"+path.resolve(filename));
+        console.log(absolutePath);
+        components[i].importPath = absolutePath;
+    }
 }
+
+//TODO fix getting import paths for components, currently only works for relative files
+//put in location and format that the preprocessing script can deal with
 
 
