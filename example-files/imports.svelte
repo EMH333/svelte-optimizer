@@ -7,4 +7,8 @@
 </script>
 
 <Basic used="TESTING" />
+<br>
 <AutoComplete items="{colors}" bind:selectedItem="{selectedColor}" />
+<br>
+The selected color is {selectedColor}
+
