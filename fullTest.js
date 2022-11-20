@@ -22,21 +22,36 @@ if (fs.existsSync('dist')) {
 
 console.log("Building...");
 
-// normal build
-await esbuild
-    .build({
-        entryPoints: ["example-files/entry.js"],
-        mainFields: ["svelte", "browser", "module", "main"],
-        bundle: true,
-        minify: true,
-        outdir: "./dist",
-        plugins: [
-            esbuildSvelte({}),
-        ],
-    })
-    .catch(() => process.exit(1));
+const compare = process.argv.length >= 3 && process.argv[2] === "true";
+let normalSize;
 
-const normalSize = await dirSize("dist");
+if (compare) {
+    // normal build
+    await esbuild
+        .build({
+            entryPoints: ["example-files/entry.js"],
+            mainFields: ["svelte", "browser", "module", "main"],
+            bundle: true,
+            minify: true,
+            pure: ["console.log"],
+            format: "esm",
+            target: "es2019",
+            outdir: "./dist",
+            plugins: [
+                esbuildSvelte({
+                    filterWarnings: (warning) => {
+                        if (warning.code === "a11y-click-events-have-key-events") {
+                            return false;
+                        }
+                        return true;
+                    }
+                }),
+            ],
+        })
+        .catch(() => process.exit(1));
+
+    normalSize = await dirSize("dist");
+}
 
 const usedExternal = new Set();
 usedExternal.add("test");
@@ -50,10 +65,19 @@ await esbuild
         mainFields: ["svelte", "browser", "module", "main"],
         bundle: true,
         minify: true,
+        pure: ["console.log"],
+        format: "esm",
+        target: "es2019",
         outdir: "./dist",
         plugins: [
             esbuildSvelte({
                 preprocess: preprocess(usedExternal),
+                filterWarnings: (warning) => {
+                    if (warning.code === "a11y-click-events-have-key-events") {
+                        return false;
+                    }
+                    return true;
+                }
             }),
         ],
     })
@@ -61,6 +85,6 @@ await esbuild
 
 const preprocessedSize = await dirSize("dist");
 
-console.log("Normal size:", normalSize);
+compare && console.log("Normal size:", normalSize);
 console.log("Preprocessed size:", preprocessedSize);
-console.log("Difference:", normalSize - preprocessedSize);
+compare && console.log("Difference:", normalSize - preprocessedSize);
