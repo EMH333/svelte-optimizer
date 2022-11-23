@@ -30,7 +30,7 @@ export default (usedExternal) => {
                 //check content if it gets initalized to true or false
                 const matchTrue = content.match(new RegExp(`const ${v.name} = true`));
                 const matchFalse = content.match(new RegExp(`const ${v.name} = false`));
-                const matchUndefined = content.match(new RegExp(`const ${v.name} = (undefined|null)`));
+                const matchUndefined = content.match(new RegExp(`const ${v.name} = undefined`));
                 if (matchTrue) {
                     constTrue.add(v.name);
                 }
@@ -45,16 +45,22 @@ export default (usedExternal) => {
             // replace all occurences of constTrue with true
             for (const t of constTrue) {
                 content = content.replace(new RegExp(`if\\s*\\(\\s*${t}\\s*\\)`, "g"), `if(true)`);
+                // handle NOT if statements
+                content = content.replace(new RegExp(`if\\s*\\(\\s*!\\s*${t}\\s*\\)`, "g"), `if(false)`);
             }
 
             // replace all occurences of constFalse with false
             for (const f of constFalse) {
                 content = content.replace(new RegExp(`if\\s*\\(\\s*${f}\\s*\\)`, "g"), `if(false)`);
+                // handle NOT if statements
+                content = content.replace(new RegExp(`if\\s*\\(\\s*!\\s*${f}\\s*\\)`, "g"), `if(true)`);
             }
 
             // replace all occurences of constUndefined with false
             for (const u of constUndefined) {
                 content = content.replace(new RegExp(`if\\s*\\(\\s*${u}\\s*\\)`, "g"), `if(false)`);
+                // handle NOT if statements
+                content = content.replace(new RegExp(`if\\s*\\(\\s*!\\s*${u}\\s*\\)`, "g"), `if(true)`);
             }
 
             //TODO more could be done here like doing the same thing with the actual svelte ast (checking for 'and' conditions in if statements)
@@ -79,7 +85,7 @@ export default (usedExternal) => {
                 //TODO make sure this is within script tags
                 const matchTrue = content.match(new RegExp(`const ${v.name} = true`));
                 const matchFalse = content.match(new RegExp(`const ${v.name} = false`));
-                const matchUndefined = content.match(new RegExp(`const ${v.name} = (undefined|null)`));
+                const matchUndefined = content.match(new RegExp(`const ${v.name} = undefined`));
                 if (matchTrue) {
                     constTrue.add(v.name);
                 }
@@ -95,7 +101,7 @@ export default (usedExternal) => {
             for (const name of unwritten) {
                 const matchTrue = content.match(new RegExp(`export let ${name} = true`));
                 const matchFalse = content.match(new RegExp(`export let ${name} = false`));
-                const matchUndefined = content.match(new RegExp(`export let ${name} = (undefined|null)`));
+                const matchUndefined = content.match(new RegExp(`export let ${name} = undefined`));
                 if (matchTrue) {
                     constTrue.add(name);
                 }

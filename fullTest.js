@@ -64,7 +64,8 @@ await esbuild
         entryPoints: ["example-files/entry.js"],
         mainFields: ["svelte", "browser", "module", "main"],
         bundle: true,
-        minify: true,
+        minify: compare, // only minify if doing a comparison
+        minifySyntax: true,
         pure: ["console.log"],
         format: "esm",
         target: "es2019",
