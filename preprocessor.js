@@ -47,6 +47,16 @@ export default (usedExternal) => {
                 content = content.replace(new RegExp(`if\\s*\\(\\s*${t}\\s*\\)`, "g"), `if(true)`);
                 // handle NOT if statements
                 content = content.replace(new RegExp(`if\\s*\\(\\s*!\\s*${t}\\s*\\)`, "g"), `if(false)`);
+
+                // handle ternary operators
+                content = content.replace(new RegExp(`\\?\\s*${t}\\s*:\\s*`, "g"), `? true : `);
+                content = content.replace(new RegExp(`\\?\\s*!\\s*${t}\\s*:\\s*`, "g"), `? false : `);
+
+                // boolean short-circuiting if statements
+                content = content.replace(new RegExp(`if\\s*\\(\\s*${t}\\s*&&\\s*`, "g"), `if(true&&`);
+                content = content.replace(new RegExp(`if\\s*\\(\\s*${t}\\s*\\|\\|\\s*`, "g"), `if(true||`);
+                content = content.replace(new RegExp(`if\\s*\\(\\s*!\\s*${t}\\s*&&\\s*`, "g"), `if(false&&`);
+                content = content.replace(new RegExp(`if\\s*\\(\\s*!\\s*${t}\\s*\\|\\|\\s*`, "g"), `if(false||`);
             }
 
             // replace all occurences of constFalse with false
@@ -54,6 +64,16 @@ export default (usedExternal) => {
                 content = content.replace(new RegExp(`if\\s*\\(\\s*${f}\\s*\\)`, "g"), `if(false)`);
                 // handle NOT if statements
                 content = content.replace(new RegExp(`if\\s*\\(\\s*!\\s*${f}\\s*\\)`, "g"), `if(true)`);
+
+                // handle ternary operators
+                content = content.replace(new RegExp(`\\?\\s*${f}\\s*:\\s*`, "g"), `? false : `);
+                content = content.replace(new RegExp(`\\?\\s*!\\s*${f}\\s*:\\s*`, "g"), `? true : `);
+
+                // boolean short-circuiting if statements
+                content = content.replace(new RegExp(`if\\s*\\(\\s*${f}\\s*&&\\s*`, "g"), `if(false&&`);
+                content = content.replace(new RegExp(`if\\s*\\(\\s*${f}\\s*\\|\\|\\s*`, "g"), `if(false||`);
+                content = content.replace(new RegExp(`if\\s*\\(\\s*!\\s*${f}\\s*&&\\s*`, "g"), `if(true&&`);
+                content = content.replace(new RegExp(`if\\s*\\(\\s*!\\s*${f}\\s*\\|\\|\\s*`, "g"), `if(true||`);
             }
 
             // replace all occurences of constUndefined with false
@@ -61,6 +81,9 @@ export default (usedExternal) => {
                 content = content.replace(new RegExp(`if\\s*\\(\\s*${u}\\s*\\)`, "g"), `if(false)`);
                 // handle NOT if statements
                 content = content.replace(new RegExp(`if\\s*\\(\\s*!\\s*${u}\\s*\\)`, "g"), `if(true)`);
+
+                // handle ternary operators
+                content = content.replace(new RegExp(`\\?\\s*${u}\\s*:\\s*`, "g"), `? false : `);
             }
 
             //TODO more could be done here like doing the same thing with the actual svelte ast (checking for 'and' conditions in if statements)
@@ -119,6 +142,26 @@ export default (usedExternal) => {
 
                 //`{:else if create}` -> `{:else if true}`
                 content = content.replace(new RegExp(`{:else if\\s*${t}\\s*}`, "g"), `{:else if true}`);
+
+                //`{#if !create}` -> `{#if false}`
+                content = content.replace(new RegExp(`{#if\\s*!\\s*${t}\\s*}`, "g"), `{#if false}`);
+
+                //`{:else if !create}` -> `{:else if false}`
+                content = content.replace(new RegExp(`{:else if\\s*!\\s*${t}\\s*}`, "g"), `{:else if false}`);
+
+
+                ///// Boolean logic optimization
+                //`{#if clearable && ...` can be set to `{#if true && ...`
+                content = content.replace(new RegExp(`{#if\\s*${t}\\s*&&`, "g"), `{#if true &&`);
+
+                //`{#if clearable || ...` can be set to `{#if true || ...`
+                content = content.replace(new RegExp(`{#if\\s*${t}\\s*\\|\\|`, "g"), `{#if true ||`);
+
+                //`{#if !clearable && ...` can be set to `{#if false && ...`
+                content = content.replace(new RegExp(`{#if\\s*!\\s*${t}\\s*&&`, "g"), `{#if false &&`);
+
+                //`{#if !clearable || ...` can be set to `{#if false || ...`
+                content = content.replace(new RegExp(`{#if\\s*!\\s*${t}\\s*\\|\\|`, "g"), `{#if false ||`);
             }
 
             // replace all occurences of constFalse with false
@@ -132,6 +175,26 @@ export default (usedExternal) => {
 
                 //`{:else if create}` can be set to `{:else if false}`
                 content = content.replace(new RegExp(`{:else if\\s*${f}\\s*}`, "g"), `{:else if false}`);
+
+                //`{#if !clearable}` can be set to `{#if !false}`
+                content = content.replace(new RegExp(`{#if\\s*!\\s*${f}\\s*}`, "g"), `{#if true}`);
+
+                //`{:else if !create}` can be set to `{:else if !false}`
+                content = content.replace(new RegExp(`{:else if\\s*!\\s*${f}\\s*}`, "g"), `{:else if true}`);
+
+                
+                ///// Boolean logic optimization
+                //`{#if clearable && ...` can be set to `{#if false && ...`
+                content = content.replace(new RegExp(`{#if\\s*${f}\\s*&&`, "g"), `{#if false &&`);
+
+                //`{#if clearable || ...` can be set to `{#if false || ...`
+                content = content.replace(new RegExp(`{#if\\s*${f}\\s*\\|\\|`, "g"), `{#if false ||`);
+
+                //`{#if !clearable && ...` can be set to `{#if !false && ...`
+                content = content.replace(new RegExp(`{#if\\s*!\\s*${f}\\s*&&`, "g"), `{#if !false &&`);
+
+                //`{#if !clearable || ...` can be set to `{#if !false || ...`
+                content = content.replace(new RegExp(`{#if\\s*!\\s*${f}\\s*\\|\\|`, "g"), `{#if !false ||`);                
             }
 
             for (const u of constUndefined) {
@@ -143,6 +206,13 @@ export default (usedExternal) => {
 
                 //`{:else if create}` can be set to `{:else if false}`
                 content = content.replace(new RegExp(`{:else if\\s*${u}\\s*}`, "g"), `{:else if false}`);
+
+                ///// Boolean logic optimization
+                //`{#if clearable && ...` can be set to `{#if false && ...`
+                content = content.replace(new RegExp(`{#if\\s*${u}\\s*&&`, "g"), `{#if false &&`);
+
+                //`{#if clearable || ...` can be set to `{#if false || ...`
+                content = content.replace(new RegExp(`{#if\\s*${u}\\s*\\|\\|`, "g"), `{#if false ||`);
             }
 
             return { code: content };
