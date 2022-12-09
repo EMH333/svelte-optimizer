@@ -9,7 +9,9 @@ const filename = process.argv[2];
 const file = readFileSync(filename, "utf8");
 
 const usedExternal = new Set();
-
+usedExternal.add("test");
+usedExternal.add("items");
+usedExternal.add("selectedItem");
 
 //run svelte preprocess on it
 const { code } = await preprocess(file, [preprocessor(usedExternal)]);

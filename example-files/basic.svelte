@@ -36,8 +36,10 @@
     <p>True with False</p>
 {/if}
 
-{#if trueBool && trueBool}
-    <p>True with True Expression</p>
+{#if trueBool && falseBool}
+    <p>True with Expression</p>
+{:else if trueBool}
+    <p>False else if with Expression</p>
 {:else}
-    <p>False with True Expression</p>
+    <p>False with Expression</p>
 {/if}

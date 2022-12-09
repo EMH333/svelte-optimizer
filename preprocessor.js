@@ -140,13 +140,13 @@ export default (usedExternal) => {
 
             const constants = new Map();
             for (const t of constTrue) {
-                constants.set(t, true);
+                constants.set(t, {type: "Literal", value: true});
             }
             for (const f of constFalse) {
-                constants.set(f, false);
+                constants.set(f, {type: "Literal", value: false});
             }
             for (const u of constUndefined) {
-                constants.set(u, undefined);
+                constants.set(u, {type: "Literal", value: undefined});
             }
             content = dealWithAST(content, ast, unwritten, constants);
 
@@ -281,56 +281,65 @@ function dealWithAST(content, ast, unwritten, constants) {
 function processASTHTML(magicString, ast, constants) {
     switch (ast.type) {
         case "Text":
-            return;
+            break;
+        case "RawMustacheTag":
         case "MustacheTag":
+            //console.log("MustacheTag", ast)
             break;
         case "IfBlock":
-            console.log("IfBlock", ast.expression)
+            //console.log("IfBlock", ast.expression)
             const result = evaluateExpression(ast.expression, constants);
             //processExpression(magicString, ast.expression, constants);
             if (result === true) {
-                // we can get rid of the else block
+                // we can get rid of the else or else if blocks
                 magicString.remove(ast.start, ast.children[0].start);
                 magicString.remove(ast.children[ast.children.length - 1].end, ast.end);
-
             }
             if (result === false) {
-                //we can get rid of the if block but keep the else
-                if (ast.else) {
+                //we can get rid of the if block but need to look at the else if and else blocks
+                if (ast.else?.children?.[0].elseif === true) {
+                    processASTHTML(magicString, ast.else.children[0], constants);
+                } if (ast.else) {
                     magicString.remove(ast.start, ast.else.children[0].start);
                     magicString.remove(ast.else.children[ast.children.length - 1].end, ast.end);
+                    //set the else block as the ast we are looking at
+                    ast = ast.else;
                 } else {
                     magicString.remove(ast.start, ast.end);
+                    //can return directly, no need to evaluate children
+                    return;
                 }
             }
             if (result === undefined) {
-                //we can't do anything
-                console.log("undefined")
+                //we can't do anything other than look at the children
+                //if (ast.else?.children?.[0].elseif === true) {
+                //    processASTHTML(magicString, ast.else.children[0], constants);
+                //}
+                //console.log("undefined")
             }
+            break;
+        case "Window":
+        case "Element":
+        case "Fragment":
+        case "Slot":
+            //don't need to do anything but process children
+            ast.attributes?.forEach((attribute) => {
+                processAttributes(magicString, attribute, constants);
+            });
+            break;
+        case "EachBlock":
+            //TODO tackle at another time
+            break;
+        case "AttributeShorthand":
+            //TODO tackle at another time
+            //console.log("AttributeShorthand", ast)
             break;
 
         default:
+            console.log("default", ast.type)
             break;
     }
     ast.children?.forEach((child) => processASTHTML(magicString, child, constants));
-}
-
-/**
- *  
- * @param {MagicString} magicString
- * @param {import("svelte/types/compiler/interfaces").Expression} ast
- * @param {Map<String, any>} constants
- * @returns
- * @example
- */
-function processExpression(magicString, ast, constants) {
-    switch (ast.type) {
-        case "Identifier":
-            if (constants.has(ast.name)) {
-                return constants.get(ast.name);
-            }
-            return;
-    }
 }
 
 /**
@@ -342,10 +351,99 @@ function processExpression(magicString, ast, constants) {
 function evaluateExpression(ast, constants) {
     switch (ast.type) {
         case "Identifier":
-            if (constants.has(ast.name)) {
-                return constants.get(ast.name);
+            if (constants.has(ast.name) && constants.get(ast.name).type === "Literal") {
+                return constants.get(ast.name).value;
             }
             return undefined;
+        case "LogicalExpression":
+            const left = evaluateExpression(ast.left, constants);
+            const right = evaluateExpression(ast.right, constants);
+            if (left === true && ast.operator === "||") {
+                return true;
+            }
+            if (left === false && ast.operator === "&&") {
+                return false;
+            }
+            if (left === false && ast.operator === "||") {
+                return right;
+            }
+            if (left === true && ast.operator === "&&") {
+                return right;
+            }
+            return undefined;
+        case "UnaryExpression":
+            const value = evaluateExpression(ast.argument, constants);
+            if (value === true && ast.operator === "!") {
+                return false;
+            }
+            if (value === false && ast.operator === "!") {
+                return true;
+            }
+            return undefined;
+        case "Literal":
+            switch (ast.value) {
+                case "true":
+                    return true;
+                case "false":
+                    return false;
+                default:
+                    return undefined;
+            }
+        case "BinaryExpression":
+            const leftValue = evaluateExpression(ast.left, constants);
+            const rightValue = evaluateExpression(ast.right, constants);
+            if(ast.operator === "===" || ast.operator === "=="){
+                return leftValue === rightValue;
+            }
+            if(ast.operator === "!==" || ast.operator === "!="){
+                return leftValue !== rightValue;
+            }
+            return undefined;
+
     }
     return undefined;
+}
+
+/**
+ * @param {MagicString} magicString
+ * @param {import("svelte/types/compiler/interfaces").Attribute} attribute
+ * @param {Map<String, any>} constants
+ */
+function processAttributes(magicString, attribute, constants) {
+    switch (attribute.type) {
+        case "EventHandler":
+            //TODO
+            break;
+        case "Attribute":
+            //console.log("Attribute", attribute)
+            if (attribute.value instanceof Array) {
+                attribute.value?.forEach((value) => {
+                    processASTHTML(magicString, value, constants);
+                });
+            }
+            break;
+        case "Binding":
+        case "Class":
+            //console.log("Class", attribute)
+            const result = evaluateExpression(attribute.expression, constants);
+            if (result === true) {
+                //replace expression with true
+                magicString.overwrite(attribute.expression.start, attribute.expression.end, "true");
+                //console.log(attribute.expression)
+            }
+            if (result === false) {
+                //get rid of the attribute
+                magicString.remove(attribute.start, attribute.end);
+            }
+            break;
+        case "Animation":
+        case "Transition":
+        case "Spread":
+            //console.log("other attribute", attribute)
+            //TODO deal with this later
+            break;
+        default:
+            console.log("default attribute", attribute.type)
+            break;
+    }
 }
