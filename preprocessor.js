@@ -1,7 +1,9 @@
+import MagicString from "magic-string";
 import { compile } from "svelte/compiler";
 
 export default (usedExternal) => {
     return {
+        /*
         script: ({ content, attributes, markup, filename }) => {
 
             //TODO unexport vars not used externally
@@ -90,9 +92,9 @@ export default (usedExternal) => {
 
             //console.log(content);
             return { code: content };
-        },
+        },*/
         markup: ({ content, filename }) => {
-            const { vars } = compile(content, {
+            const { vars, ast } = compile(content, {
                 filename,
                 generate: false,
                 dev: false,
@@ -136,6 +138,19 @@ export default (usedExternal) => {
                 }
             }
 
+            const constants = new Map();
+            for (const t of constTrue) {
+                constants.set(t, true);
+            }
+            for (const f of constFalse) {
+                constants.set(f, false);
+            }
+            for (const u of constUndefined) {
+                constants.set(u, undefined);
+            }
+            content = dealWithAST(content, ast, unwritten, constants);
+
+            /*
             for (const t of constTrue) {
                 //`{#if clearable}` -> `{#if true}`
                 content = content.replace(new RegExp(`{#if\\s*${t}\\s*}`, "g"), `{#if true}`);
@@ -182,7 +197,7 @@ export default (usedExternal) => {
                 //`{:else if !create}` can be set to `{:else if !false}`
                 content = content.replace(new RegExp(`{:else if\\s*!\\s*${f}\\s*}`, "g"), `{:else if true}`);
 
-                
+
                 ///// Boolean logic optimization
                 //`{#if clearable && ...` can be set to `{#if false && ...`
                 content = content.replace(new RegExp(`{#if\\s*${f}\\s*&&`, "g"), `{#if false &&`);
@@ -194,7 +209,7 @@ export default (usedExternal) => {
                 content = content.replace(new RegExp(`{#if\\s*!\\s*${f}\\s*&&`, "g"), `{#if !false &&`);
 
                 //`{#if !clearable || ...` can be set to `{#if !false || ...`
-                content = content.replace(new RegExp(`{#if\\s*!\\s*${f}\\s*\\|\\|`, "g"), `{#if !false ||`);                
+                content = content.replace(new RegExp(`{#if\\s*!\\s*${f}\\s*\\|\\|`, "g"), `{#if !false ||`);
             }
 
             for (const u of constUndefined) {
@@ -214,6 +229,7 @@ export default (usedExternal) => {
                 //`{#if clearable || ...` can be set to `{#if false || ...`
                 content = content.replace(new RegExp(`{#if\\s*${u}\\s*\\|\\|`, "g"), `{#if false ||`);
             }
+            */
 
             return { code: content };
         }
@@ -233,4 +249,103 @@ function getWrittenAndUnwrittenVars(vars, usedExternal) {
     const unwritten = [...allVars].filter(v => !written.has(v));
 
     return { written, unwritten };
+}
+
+
+//TODO pass content to function and deal with it
+/**
+ * 
+ * @param {import("svelte/types/compiler/interfaces").Ast} ast 
+ * @param {*} unwritten 
+ * @param {Map<String, any>} constants
+ * @returns {string} The new content
+ */
+function dealWithAST(content, ast, unwritten, constants) {
+    const script = ast.instance.content.body;
+    const html = ast.html;
+    //console.log(html)
+
+    const magicString = new MagicString(content);
+
+    processASTHTML(magicString, html, constants);
+
+    return magicString.toString();
+}
+
+/**
+ * 
+ * @param {MagicString} magicString
+ * @param {import("svelte/types/compiler/interfaces").TemplateNode} ast 
+ * @param {Map<String, any>} constants
+ */
+function processASTHTML(magicString, ast, constants) {
+    switch (ast.type) {
+        case "Text":
+            return;
+        case "MustacheTag":
+            break;
+        case "IfBlock":
+            console.log("IfBlock", ast.expression)
+            const result = evaluateExpression(ast.expression, constants);
+            //processExpression(magicString, ast.expression, constants);
+            if (result === true) {
+                // we can get rid of the else block
+                magicString.remove(ast.start, ast.children[0].start);
+                magicString.remove(ast.children[ast.children.length - 1].end, ast.end);
+
+            }
+            if (result === false) {
+                //we can get rid of the if block but keep the else
+                if (ast.else) {
+                    magicString.remove(ast.start, ast.else.children[0].start);
+                    magicString.remove(ast.else.children[ast.children.length - 1].end, ast.end);
+                } else {
+                    magicString.remove(ast.start, ast.end);
+                }
+            }
+            if (result === undefined) {
+                //we can't do anything
+                console.log("undefined")
+            }
+            break;
+
+        default:
+            break;
+    }
+    ast.children?.forEach((child) => processASTHTML(magicString, child, constants));
+}
+
+/**
+ *  
+ * @param {MagicString} magicString
+ * @param {import("svelte/types/compiler/interfaces").Expression} ast
+ * @param {Map<String, any>} constants
+ * @returns
+ * @example
+ */
+function processExpression(magicString, ast, constants) {
+    switch (ast.type) {
+        case "Identifier":
+            if (constants.has(ast.name)) {
+                return constants.get(ast.name);
+            }
+            return;
+    }
+}
+
+/**
+ * 
+ * @param {*} ast 
+ * @param {*} constants 
+ * @returns {boolean | undefined}
+ */
+function evaluateExpression(ast, constants) {
+    switch (ast.type) {
+        case "Identifier":
+            if (constants.has(ast.name)) {
+                return constants.get(ast.name);
+            }
+            return undefined;
+    }
+    return undefined;
 }

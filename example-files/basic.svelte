@@ -23,3 +23,21 @@
 <button on:click={doStuff} value={constant}>
     Hello {used}! This is a test {neverSet} and {constant}.
 </button>
+
+{#if trueBool}
+    <p>True with True</p>
+{:else}
+    <p>False with True</p>
+{/if}
+
+{#if falseBool}
+    <p>False with False</p>
+{:else}
+    <p>True with False</p>
+{/if}
+
+{#if trueBool && trueBool}
+    <p>True with True Expression</p>
+{:else}
+    <p>False with True Expression</p>
+{/if}
