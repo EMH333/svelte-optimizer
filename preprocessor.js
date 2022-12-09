@@ -3,7 +3,7 @@ import { compile } from "svelte/compiler";
 
 export default (usedExternal) => {
     return {
-        /*
+        
         script: ({ content, attributes, markup, filename }) => {
 
             //TODO unexport vars not used externally
@@ -92,7 +92,7 @@ export default (usedExternal) => {
 
             //console.log(content);
             return { code: content };
-        },*/
+        },
         markup: ({ content, filename }) => {
             const { vars, ast } = compile(content, {
                 filename,
@@ -323,6 +323,7 @@ function processASTHTML(magicString, ast, constants) {
                 magicString.remove(ast.children[ast.children.length - 1].end, ast.end);
             }
             if (result === false) {
+                //TODO more work needed here to extract most optimization
                 //we can get rid of the if block but need to look at the else if and else blocks
                 if (ast.else?.children?.[0].elseif === true) {
                     processASTHTML(magicString, ast.else.children[0], constants);
@@ -420,6 +421,10 @@ function evaluateExpression(ast, constants) {
         case "BinaryExpression":
             const leftValue = evaluateExpression(ast.left, constants);
             const rightValue = evaluateExpression(ast.right, constants);
+            // can't do anything if we don't know the value of both sides
+            if(leftValue === undefined || rightValue === undefined) {
+                return undefined;
+            }
             if (ast.operator === "===" || ast.operator === "==") {
                 return leftValue === rightValue;
             }
