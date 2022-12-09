@@ -103,6 +103,9 @@ export default (usedExternal) => {
 
             const { unwritten } = getWrittenAndUnwrittenVars(vars, usedExternal);
 
+            //TODO eventually everything can go in here, but for now, we'll just do the constants
+            const constants = new Map();
+
             const constTrue = new Set();
             const constFalse = new Set();
             const constUndefined = new Set();
@@ -111,6 +114,9 @@ export default (usedExternal) => {
                 const matchTrue = content.match(new RegExp(`const ${v.name} = true`));
                 const matchFalse = content.match(new RegExp(`const ${v.name} = false`));
                 const matchUndefined = content.match(new RegExp(`const ${v.name} = undefined`));
+                const matchEmptyString = content.match(new RegExp(`const ${v.name} = ""`));
+                const matchEmptyArray = content.match(new RegExp(`const ${v.name} = \\[\\]`));
+                const matchConstantString = content.match(new RegExp(`const ${v.name} = ".*?"`));
                 if (matchTrue) {
                     constTrue.add(v.name);
                 }
@@ -120,6 +126,15 @@ export default (usedExternal) => {
                 if (matchUndefined) {
                     constUndefined.add(v.name);
                 }
+                if (matchEmptyString) {
+                    constants.set(v.name, { type: "EmptyString" });
+                }
+                if (matchEmptyArray) {
+                    constants.set(v.name, { type: "EmptyArray" });
+                }
+                if (matchConstantString) {
+                    constants.set(v.name, { type: "ConstantString", value: matchConstantString[0].split("=")[1].trim() });
+                }
             }
 
             // since they haven't been optimized yet, we need a special case here
@@ -127,6 +142,9 @@ export default (usedExternal) => {
                 const matchTrue = content.match(new RegExp(`export let ${name} = true`));
                 const matchFalse = content.match(new RegExp(`export let ${name} = false`));
                 const matchUndefined = content.match(new RegExp(`export let ${name} = undefined`));
+                const matchEmptyString = content.match(new RegExp(`export let ${name} = ""`));
+                const matchEmptyArray = content.match(new RegExp(`export let ${name} = \\[\\]`));
+                const matchConstantString = content.match(new RegExp(`export let ${name} = ".*?"`));
                 if (matchTrue) {
                     constTrue.add(name);
                 }
@@ -136,17 +154,26 @@ export default (usedExternal) => {
                 if (matchUndefined) {
                     constUndefined.add(name);
                 }
+                if (matchEmptyString) {
+                    constants.set(name, { type: "EmptyString" });
+                }
+                if (matchEmptyArray) {
+                    constants.set(name, { type: "EmptyArray" });
+                }
+                if (matchConstantString) {
+                    constants.set(name, { type: "ConstantString", value: matchConstantString[0].split("=")[1].trim() });
+                }
             }
 
-            const constants = new Map();
+
             for (const t of constTrue) {
-                constants.set(t, {type: "Literal", value: true});
+                constants.set(t, { type: "Literal", value: true });
             }
             for (const f of constFalse) {
-                constants.set(f, {type: "Literal", value: false});
+                constants.set(f, { type: "Literal", value: false });
             }
             for (const u of constUndefined) {
-                constants.set(u, {type: "Literal", value: undefined});
+                constants.set(u, { type: "Literal", value: undefined });
             }
             content = dealWithAST(content, ast, unwritten, constants);
 
@@ -351,7 +378,8 @@ function processASTHTML(magicString, ast, constants) {
 function evaluateExpression(ast, constants) {
     switch (ast.type) {
         case "Identifier":
-            if (constants.has(ast.name) && constants.get(ast.name).type === "Literal") {
+            //TODO deal with empty arrays/string and other stuff in a better way
+            if (constants.has(ast.name) && (constants.get(ast.name).type === "Literal" || constants.get(ast.name).type === "ConstantString")) {
                 return constants.get(ast.name).value;
             }
             return undefined;
@@ -392,10 +420,10 @@ function evaluateExpression(ast, constants) {
         case "BinaryExpression":
             const leftValue = evaluateExpression(ast.left, constants);
             const rightValue = evaluateExpression(ast.right, constants);
-            if(ast.operator === "===" || ast.operator === "=="){
+            if (ast.operator === "===" || ast.operator === "==") {
                 return leftValue === rightValue;
             }
-            if(ast.operator === "!==" || ast.operator === "!="){
+            if (ast.operator === "!==" || ast.operator === "!=") {
                 return leftValue !== rightValue;
             }
             return undefined;
