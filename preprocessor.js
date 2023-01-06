@@ -177,87 +177,6 @@ export default (usedExternal) => {
             }
             content = dealWithAST(content, ast, unwritten, constants);
 
-            /*
-            for (const t of constTrue) {
-                //`{#if clearable}` -> `{#if true}`
-                content = content.replace(new RegExp(`{#if\\s*${t}\\s*}`, "g"), `{#if true}`);
-
-                //`{:else if create}` -> `{:else if true}`
-                content = content.replace(new RegExp(`{:else if\\s*${t}\\s*}`, "g"), `{:else if true}`);
-
-                //`{#if !create}` -> `{#if false}`
-                content = content.replace(new RegExp(`{#if\\s*!\\s*${t}\\s*}`, "g"), `{#if false}`);
-
-                //`{:else if !create}` -> `{:else if false}`
-                content = content.replace(new RegExp(`{:else if\\s*!\\s*${t}\\s*}`, "g"), `{:else if false}`);
-
-
-                ///// Boolean logic optimization
-                //`{#if clearable && ...` can be set to `{#if true && ...`
-                content = content.replace(new RegExp(`{#if\\s*${t}\\s*&&`, "g"), `{#if true &&`);
-
-                //`{#if clearable || ...` can be set to `{#if true || ...`
-                content = content.replace(new RegExp(`{#if\\s*${t}\\s*\\|\\|`, "g"), `{#if true ||`);
-
-                //`{#if !clearable && ...` can be set to `{#if false && ...`
-                content = content.replace(new RegExp(`{#if\\s*!\\s*${t}\\s*&&`, "g"), `{#if false &&`);
-
-                //`{#if !clearable || ...` can be set to `{#if false || ...`
-                content = content.replace(new RegExp(`{#if\\s*!\\s*${t}\\s*\\|\\|`, "g"), `{#if false ||`);
-            }
-
-            // replace all occurences of constFalse with false
-            for (const f of constFalse) {
-                //`class:show-clear={clearable}` can be removed if clearable is false
-                //-?[_a-zA-Z]+[_a-zA-Z0-9-]* represents all css classes
-                content = content.replace(new RegExp(`class:(-?[_a-zA-Z]+[_a-zA-Z0-9-]*)={${f}}`, "g"), ``);
-
-                //`{#if clearable}` can be set to `{#if false}`
-                content = content.replace(new RegExp(`{#if\\s*${f}\\s*}`, "g"), `{#if false}`);
-
-                //`{:else if create}` can be set to `{:else if false}`
-                content = content.replace(new RegExp(`{:else if\\s*${f}\\s*}`, "g"), `{:else if false}`);
-
-                //`{#if !clearable}` can be set to `{#if !false}`
-                content = content.replace(new RegExp(`{#if\\s*!\\s*${f}\\s*}`, "g"), `{#if true}`);
-
-                //`{:else if !create}` can be set to `{:else if !false}`
-                content = content.replace(new RegExp(`{:else if\\s*!\\s*${f}\\s*}`, "g"), `{:else if true}`);
-
-
-                ///// Boolean logic optimization
-                //`{#if clearable && ...` can be set to `{#if false && ...`
-                content = content.replace(new RegExp(`{#if\\s*${f}\\s*&&`, "g"), `{#if false &&`);
-
-                //`{#if clearable || ...` can be set to `{#if false || ...`
-                content = content.replace(new RegExp(`{#if\\s*${f}\\s*\\|\\|`, "g"), `{#if false ||`);
-
-                //`{#if !clearable && ...` can be set to `{#if !false && ...`
-                content = content.replace(new RegExp(`{#if\\s*!\\s*${f}\\s*&&`, "g"), `{#if !false &&`);
-
-                //`{#if !clearable || ...` can be set to `{#if !false || ...`
-                content = content.replace(new RegExp(`{#if\\s*!\\s*${f}\\s*\\|\\|`, "g"), `{#if !false ||`);
-            }
-
-            for (const u of constUndefined) {
-                //`on:input={onInput}` can be removed if onInput is undefined
-                content = content.replace(new RegExp(`on:[a-zA-Z]+={${u}}`, "g"), ``);
-
-                //`{#if clearable}` can be set to `{#if false}`
-                content = content.replace(new RegExp(`{#if\\s*${u}\\s*}`, "g"), `{#if false}`);
-
-                //`{:else if create}` can be set to `{:else if false}`
-                content = content.replace(new RegExp(`{:else if\\s*${u}\\s*}`, "g"), `{:else if false}`);
-
-                ///// Boolean logic optimization
-                //`{#if clearable && ...` can be set to `{#if false && ...`
-                content = content.replace(new RegExp(`{#if\\s*${u}\\s*&&`, "g"), `{#if false &&`);
-
-                //`{#if clearable || ...` can be set to `{#if false || ...`
-                content = content.replace(new RegExp(`{#if\\s*${u}\\s*\\|\\|`, "g"), `{#if false ||`);
-            }
-            */
-
             return { code: content };
         }
     };
@@ -350,6 +269,7 @@ function processASTHTML(magicString, ast, constants) {
         case "Element":
         case "Fragment":
         case "Slot":
+        case "InlineComponent":
             //don't need to do anything but process children
             ast.attributes?.forEach((attribute) => {
                 processAttributes(magicString, attribute, constants);
