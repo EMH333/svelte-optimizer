@@ -42,17 +42,27 @@ function walkNode(node) {
 
 walkNode(ast.html);
 //console.log(JSON.stringify(components, null, 2));
-for(let i = 0; i < components.length; i++){
+for (let i = 0; i < components.length; i++) {
     const component = components[i];
     // find import for component.name
     const importStatement = file.match(new RegExp(`import\\s+${component.name}\\s+from\\s+['"](.+)['"]`));
-    if(importStatement){
+    if (importStatement) {
         const importPath = importStatement[1];
+        /*
         const absolutePath = await import.meta.resolve(importPath, "file://"+path.resolve(filename));
         console.log(absolutePath);
-        components[i].importPath = absolutePath;
+        components[i].importPath = absolutePath;*/
+        if (importPath.startsWith(".")) {
+            components[i].importPath = path.resolve(path.dirname(filename), importPath);
+
+        } else {
+            //TODO some more complex logic to get the import path because it's probably a package
+            components[i].importPath = importPath;
+        }
     }
 }
+
+console.log(JSON.stringify(components, null, 2));
 
 //TODO fix getting import paths for components, currently only works for relative files
 //put in location and format that the preprocessing script can deal with
