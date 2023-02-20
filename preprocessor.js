@@ -1,3 +1,4 @@
+import path from "path";
 import MagicString from "magic-string";
 import { compile } from "svelte/compiler";
 
@@ -5,7 +6,6 @@ export default (usedExternal) => {
     return {
         
         script: ({ content, attributes, markup, filename }) => {
-
             //TODO unexport vars not used externally
 
             const { vars } = compile(markup, {
@@ -15,7 +15,7 @@ export default (usedExternal) => {
                 varsReport: "full"
             });
 
-            const { unwritten } = getWrittenAndUnwrittenVars(vars, usedExternal);
+            const { unwritten } = getWrittenAndUnwrittenVars(vars, usedExternal, filename);
 
             for (const u of unwritten) {
                 content = content.replace(new RegExp(`export let ${u}`), `const ${u}`);
@@ -101,7 +101,7 @@ export default (usedExternal) => {
                 varsReport: "full"
             });
 
-            const { unwritten } = getWrittenAndUnwrittenVars(vars, usedExternal);
+            const { unwritten } = getWrittenAndUnwrittenVars(vars, usedExternal, filename);
 
             //TODO eventually everything can go in here, but for now, we'll just do the constants
             const constants = new Map();
@@ -182,9 +182,11 @@ export default (usedExternal) => {
     };
 }
 
-function getWrittenAndUnwrittenVars(vars, usedExternal) {
+function getWrittenAndUnwrittenVars(vars, usedExternal, filename) {
+    const absFilename = path.resolve(process.cwd(), filename);
+
     const allVars = new Set(vars.filter((v) => v.writable && v.export_name !== null).map(v => v.name));
-    const written = new Set(usedExternal);
+    const written = new Set(usedExternal[absFilename]); //TODO support way to statically set the value of written variables if same across project
 
     for (const v of vars) {
         if (v.writable && v.export_name !== null && (v.mutated || v.reassigned)) {

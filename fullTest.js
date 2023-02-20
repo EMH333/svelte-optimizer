@@ -4,6 +4,7 @@ import preprocess from "./preprocessor.js"
 import path from "path";
 import { readdir, stat } from 'fs/promises';
 import fs from "fs";
+import { scanDir } from "./scan.js";
 
 const dirSize = async directory => {
     const files = await readdir(directory);
@@ -53,11 +54,13 @@ if (compare) {
     normalSize = await dirSize("dist");
 }
 
-const usedExternal = new Set();
-usedExternal.add("test");
-usedExternal.add("items");
-usedExternal.add("selectedItem");
+//const usedExternal = new Set();
+//usedExternal.add("test");
+//usedExternal.add("items");
+//usedExternal.add("selectedItem");
 
+const usedExternal = await scanDir("example-files");
+console.log("Used external:", usedExternal);
 
 await esbuild
     .build({
