@@ -1,6 +1,7 @@
 import { readFileSync } from "fs";
 import path from "path";
 import { compile } from "svelte/compiler";
+import * as resolve from "resolve.exports";
 
 //get filename from command line
 const filename = process.argv[2];
@@ -41,6 +42,30 @@ function walkNode(node) {
 }
 
 walkNode(ast.html);
+
+// get package.json in current directory
+function getPackageJson() {
+    try {
+        return JSON.parse(readFileSync(path.resolve(process.cwd(), "package.json"), "utf8"));
+    } catch (e) {
+        console.error("Could not find package.json in current directory");
+        return {};
+    }
+}
+
+function readPackagePackageJsonFile(pkg) {
+    try {
+        return JSON.parse(readFileSync(path.resolve(process.cwd(), "node_modules", pkg, "package.json"), "utf8"));
+    } catch (e) {
+        console.error(`Could not find package.json in ${pkg} node_modules directory`);
+        return {};
+    }
+}
+
+const packageJson = getPackageJson();
+const packages = [...Object.keys(packageJson.dependencies || {}), ...Object.keys(packageJson.devDependencies || {})];
+
+
 //console.log(JSON.stringify(components, null, 2));
 for (let i = 0; i < components.length; i++) {
     const component = components[i];
@@ -48,16 +73,26 @@ for (let i = 0; i < components.length; i++) {
     const importStatement = file.match(new RegExp(`import\\s+${component.name}\\s+from\\s+['"](.+)['"]`));
     if (importStatement) {
         const importPath = importStatement[1];
-        /*
-        const absolutePath = await import.meta.resolve(importPath, "file://"+path.resolve(filename));
-        console.log(absolutePath);
-        components[i].importPath = absolutePath;*/
-        if (importPath.startsWith(".")) {
-            components[i].importPath = path.resolve(path.dirname(filename), importPath);
 
+        if (importPath.startsWith(".")) {
+            //TODO https://github.com/lukeed/resolve.exports
+            components[i].importPath = path.resolve(path.dirname(filename), importPath);
         } else {
             //TODO some more complex logic to get the import path because it's probably a package
-            components[i].importPath = importPath;
+            //components[i].importPath = importPath;
+            components[i].importPath = resolve.exports(packageJson, importPath, { conditions: ["svelte"] });
+
+            packages.forEach((pkg) => {
+                if (importPath.startsWith(pkg)) {
+                    const pkgPackageJsonFile = readPackagePackageJsonFile(pkg);
+                    components[i].importPath = resolve.exports(pkgPackageJsonFile, importPath, { conditions: ["svelte"] })?.[0];
+                    if (!components[i].importPath) {
+                        // then we need to use the legacy route
+                        components[i].importPath = path.resolve(process.cwd(), "node_modules", pkg, resolve.legacy(pkgPackageJsonFile, { fields: ["svelte"] }));
+                    }
+                    return true;
+                }
+            });
         }
     }
 }

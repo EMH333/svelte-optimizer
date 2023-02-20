@@ -13,6 +13,7 @@
     "esbuild": "^0.15.14",
     "esbuild-svelte": "^0.7.3",
     "magic-string": "^0.27.0",
+    "resolve.exports": "^2.0.0",
     "svelte": "^3.53.1"
   },
   "devDependencies": {
