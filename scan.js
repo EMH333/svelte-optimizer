@@ -75,11 +75,10 @@ export function scanFile(filename) {
             const importPath = importStatement[1];
 
             if (importPath.startsWith(".")) {
-                //TODO https://github.com/lukeed/resolve.exports
+                // TODO should run this through resolve.exports as well just in case
                 components[i].importPath = path.resolve(path.dirname(filename), importPath);
             } else {
-                //TODO some more complex logic to get the import path because it's probably a package
-                //components[i].importPath = importPath;
+                //TODO this works for most things but probably not all (example: if importing from same package)
                 components[i].importPath = resolve.exports(packageJson, importPath, { conditions: ["svelte"] });
 
                 packages.forEach((pkg) => {
@@ -115,7 +114,19 @@ export async function scanDir(dirPath) {
         }
     }
 
-    return components;
+    //transform components into a map of component name to component attributes used
+    //this makes it really easy for the preprocessor to know what is used in each component
+    const componentMap = {};
+    for (let i = 0; i < components.length; i++) {
+        const component = components[i];
+        if (!componentMap[component.importPath]) {
+            componentMap[component.importPath] = component.attributes;
+        } else {
+            componentMap[component.importPath] = [...new Set([...componentMap[component.importPath], ...component.attributes])];
+        }
+    }
+
+    return componentMap;
 }
 
 
