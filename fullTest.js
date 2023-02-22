@@ -60,7 +60,7 @@ if (compare) {
 //usedExternal.add("selectedItem");
 
 const usedExternal = await scanDir("example-files");
-console.log("Used external:", usedExternal);
+//console.log("Used external:", usedExternal);
 
 await esbuild
     .build({
