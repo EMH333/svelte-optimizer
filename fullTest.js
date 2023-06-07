@@ -91,4 +91,4 @@ const preprocessedSize = await dirSize("dist");
 
 compare && console.log("Normal size:", normalSize);
 console.log("Preprocessed size:", preprocessedSize);
-compare && console.log("Difference:", normalSize - preprocessedSize);
+compare && console.log("Difference:", normalSize - preprocessedSize, `(${(preprocessedSize/normalSize * 100).toFixed(2)}%)`);
