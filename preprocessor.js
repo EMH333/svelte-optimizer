@@ -104,6 +104,9 @@ export default (usedExternal) => {
             const { unwritten } = getWrittenAndUnwrittenVars(vars, usedExternal, filename);
 
             //TODO eventually everything can go in here, but for now, we'll just do the constants
+            // constants is a set of objects keyed by name with the following properties:
+            // type: "EmptyString" | "EmptyArray" | "Literal" | "ImportedVar" | "ConstantExpression"
+            // value: the value of the constant
             const constants = new Map();
 
             const constTrue = new Set();
@@ -133,7 +136,7 @@ export default (usedExternal) => {
                     constants.set(v.name, { type: "EmptyArray" });
                 }
                 if (matchConstantString) {
-                    constants.set(v.name, { type: "ConstantString", value: matchConstantString[0].split("=")[1].trim() });
+                    constants.set(v.name, { type: "Literal", value: matchConstantString[0].split("=")[1].trim() });
                 }
             }
 
@@ -161,7 +164,7 @@ export default (usedExternal) => {
                     constants.set(name, { type: "EmptyArray" });
                 }
                 if (matchConstantString) {
-                    constants.set(name, { type: "ConstantString", value: matchConstantString[0].split("=")[1].trim() });
+                    constants.set(name, { type: "Literal", value: matchConstantString[0].split("=")[1].trim() });
                 }
             }
 
@@ -302,7 +305,7 @@ function evaluateExpression(ast, constants) {
     switch (ast.type) {
         case "Identifier":
             //TODO deal with empty arrays/string and other stuff in a better way
-            if (constants.has(ast.name) && (constants.get(ast.name).type === "Literal" || constants.get(ast.name).type === "ConstantString")) {
+            if (constants.has(ast.name) && constants.get(ast.name).type === "Literal") {
                 return constants.get(ast.name).value;
             }
             return undefined;
