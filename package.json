@@ -9,7 +9,7 @@
     "preprocessor.js"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "uvu test/ .*\\.mjs"
   },
   "author": "",
   "license": "ISC",
@@ -21,6 +21,7 @@
     "svelte": "^3.55.1"
   },
   "devDependencies": {
-    "simple-svelte-autocomplete": "^2.5.0"
+    "simple-svelte-autocomplete": "^2.5.0",
+    "uvu": "^0.5.6"
   }
 }
