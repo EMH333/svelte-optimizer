@@ -12,6 +12,7 @@ test("ifStatements", async () => {
     .catch(() => {throw new Error("Build failed")})
     .then((result) => {
         const code = result.outputFiles[0].text;
+        assert.equal(code.match(/Inner_Correct/g).length, 4);
         assert.not.match(code, /Incorrect/);
     });
 });
