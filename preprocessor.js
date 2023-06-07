@@ -190,6 +190,7 @@ function dealWithAST(content, ast, unwritten, constants) {
 function processASTHTML(magicString, ast, constants) {
     switch (ast.type) {
         case "Text":
+        case "Comment":
             break;
         case "RawMustacheTag":
         case "MustacheTag":
@@ -209,7 +210,8 @@ function processASTHTML(magicString, ast, constants) {
                 //we can get rid of the if block but need to look at the else if and else blocks
                 if (ast.else?.children?.[0].elseif === true) {
                     processASTHTML(magicString, ast.else.children[0], constants);
-                } if (ast.else) {
+                }
+                if (ast.else) {
                     magicString.remove(ast.start, ast.else.children[0].start);
                     magicString.remove(ast.else.children[ast.children.length - 1].end, ast.end);
                     //set the else block as the ast we are looking at
@@ -221,11 +223,11 @@ function processASTHTML(magicString, ast, constants) {
                 }
             }
             if (result === undefined) {
-                //we can't do anything other than look at the children
-                //if (ast.else?.children?.[0].elseif === true) {
-                //    processASTHTML(magicString, ast.else.children[0], constants);
-                //}
-                //console.log("undefined")
+                //TODO more work needed here to extract most optimization
+                //don't get rid of the if block but need to look at the else if blocks
+                // if (ast.else?.children?.[0].elseif === true) {
+                //     processASTHTML(magicString, ast.else.children[0], constants);
+                // }
             }
             break;
         case "Window":
