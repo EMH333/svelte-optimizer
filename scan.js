@@ -107,10 +107,14 @@ export async function scanDir(dirPath) {
         const entryPath = path.join(dirPath, dirent.name);
         if (dirent.isDirectory()) {
             const subComponents = await scanDir(entryPath);
-            components.push(...subComponents);
+            if (subComponents.length > 0) {
+                components.push(...subComponents);
+            }
         } else if (dirent.isFile() && dirent.name.endsWith(".svelte")) {
             const subComponents = scanFile(entryPath);
-            components.push(...subComponents);
+            if (subComponents.length > 0) {
+                components.push(...subComponents);
+            }
         }
     }
 

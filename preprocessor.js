@@ -115,7 +115,14 @@ export default (usedExternal) => {
                 const matchUndefined = content.match(new RegExp(`(const|export let) ${v.name} = undefined`));
                 const matchEmptyString = content.match(new RegExp(`(const|export let) ${v.name} = ""`));
                 const matchEmptyArray = content.match(new RegExp(`(const|export let) ${v.name} = \\[\\]`));
-                const matchConstantString = content.match(new RegExp(`(const|export let) ${v.name} = ".*?"`));
+                const matchConstantString = content.match(new RegExp(`(const|export let) ${v.name} = "(.*?)";?\n`));
+
+                const matchExport = content.match(new RegExp(`export let ${v.name} =`));
+                if (matchExport && !unwritten.includes(v.name)) {
+                    //exported variables used ouside of the componet can't be optimized
+                    continue;
+                }
+
                 if (matchTrue) {
                     constants.set(v.name, { type: "Literal", value: true });
                 }
@@ -132,7 +139,7 @@ export default (usedExternal) => {
                     constants.set(v.name, { type: "EmptyArray" });
                 }
                 if (matchConstantString) {
-                    constants.set(v.name, { type: "Literal", value: matchConstantString[0].split("=")[1].trim() });
+                    constants.set(v.name, { type: "Literal", value: matchConstantString[2] });
                 }
             }
 
@@ -194,7 +201,13 @@ function processASTHTML(magicString, ast, constants) {
             break;
         case "RawMustacheTag":
         case "MustacheTag":
-            //console.log("MustacheTag", ast)
+            {
+                const result = evaluateExpression(ast.expression, constants);
+                if (result !== undefined) {
+                    //console.log(result.toString())
+                    magicString.overwrite(ast.start, ast.end, result.toString());
+                }
+            }
             break;
         case "IfBlock":
             // deal with else if blocks correctly
@@ -280,8 +293,7 @@ function processASTHTML(magicString, ast, constants) {
             }
             break;
         case "AttributeShorthand":
-            //TODO tackle at another time
-            //console.log("AttributeShorthand", ast)
+            // TODO in the future this could set known variables statically
             break;
 
         default:
@@ -316,7 +328,7 @@ function evaluateExpression(ast, constants) {
             if (left === true && ast.operator === "||") {
                 return true;
             }
-            if (left === false && ast.operator === "&&") {
+            if ((left === false || right === false) && ast.operator === "&&") {
                 return false;
             }
             if (left === false && ast.operator === "||") {
@@ -358,7 +370,9 @@ function evaluateExpression(ast, constants) {
                 return leftValue !== rightValue;
             }
             return undefined;
-
+        default:
+            console.log("default expression", ast.type)
+            break;
     }
     return undefined;
 }
