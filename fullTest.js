@@ -5,6 +5,7 @@ import path from "path";
 import { readdir, stat } from 'fs/promises';
 import fs from "fs";
 import { scanDir } from "./scan.js";
+import { gzipSync } from "zlib";
 
 const dirSize = async directory => {
     const files = await readdir(directory);
@@ -24,13 +25,13 @@ if (fs.existsSync('dist')) {
 console.log("Building...");
 
 const compare = process.argv.length >= 3 && process.argv[2] === "true";
-let normalSize;
+let normalSize, normalSizeGzip;
 
 if (compare) {
     // normal build
     await esbuild
         .build({
-            entryPoints: ["example-files/entry.js"],
+            entryPoints: ["example-files/entry.js", "example-files/index.html"],
             mainFields: ["svelte", "browser", "module", "main"],
             bundle: true,
             minify: true,
@@ -38,6 +39,9 @@ if (compare) {
             format: "esm",
             target: "es2019",
             outdir: "./dist",
+            loader: {
+                ".html": "copy",
+            },
             plugins: [
                 esbuildSvelte({
                     filterWarnings: (warning) => {
@@ -52,6 +56,19 @@ if (compare) {
         .catch(() => process.exit(1));
 
     normalSize = await dirSize("dist");
+    //gzip files in dist then measure size
+    for(const file of fs.readdirSync("dist")) {
+        const content = fs.readFileSync(`dist/${file}`);
+        const gzipped = gzipSync(content, { level: 9 });
+        fs.writeFileSync(`dist/${file}.gz`, gzipped);
+    }
+    normalSizeGzip = (await dirSize("dist")) - normalSize;
+
+    // clear and recreate dist directory
+    if (fs.existsSync('dist')) {
+        fs.rmSync('dist', { recursive: true });
+        fs.mkdirSync('dist');
+    }
 }
 
 //const usedExternal = new Set();
@@ -91,7 +108,17 @@ await esbuild
     .catch(() => process.exit(1));
 
 const preprocessedSize = await dirSize("dist");
+//gzip files in dist then measure size
+for(const file of fs.readdirSync("dist")) {
+    const content = fs.readFileSync(`dist/${file}`);
+    const gzipped = gzipSync(content, { level: 9 });
+    fs.writeFileSync(`dist/${file}.gz`, gzipped);
+}
+const preprocessedSizeGzip = (await dirSize("dist")) - preprocessedSize;
 
 compare && console.log("Normal size:", normalSize);
+compare && console.log("Normal size gzip:", normalSizeGzip);
 console.log("Preprocessed size:", preprocessedSize);
-compare && console.log("Difference:", normalSize - preprocessedSize, `(${(preprocessedSize/normalSize * 100).toFixed(2)}%)`);
+console.log("Preprocessed size gzip:", preprocessedSizeGzip);
+compare && console.log("Difference:", normalSize - preprocessedSize, `(${(preprocessedSize / normalSize * 100).toFixed(2)}%)`);
+compare && console.log("Difference gzip:", normalSizeGzip - preprocessedSizeGzip, `(${(preprocessedSizeGzip / normalSizeGzip * 100).toFixed(2)}%)`);
