@@ -202,7 +202,11 @@ function processASTHTML(magicString, ast, constants) {
                 ast.end = ast.else ? ast.else.end : ast.children[ast.children.length - 1].end;
             }
 
-            const result = evaluateExpression(ast.expression, constants);
+            let result = evaluateExpression(ast.expression, constants);
+            //since this is being evaluated, try to get it into a boolean
+            if (result !== undefined) {
+                result = !!result;
+            }
             switch (result) {
                 case true:
                     {
@@ -230,8 +234,8 @@ function processASTHTML(magicString, ast, constants) {
                         }
                     }
                     break;
-
                 case undefined:
+                    // this is in cases where the result can not be statically evaluated
                     {
                         //don't get rid of the if block but need to look at the else if blocks
                         if (ast.else) {
@@ -244,7 +248,7 @@ function processASTHTML(magicString, ast, constants) {
                     }
                     break;
                 default:
-                    console.log("Unknown result", result);
+                    console.log("Unknown if result", result);
                     break;
             }
             break;
@@ -291,7 +295,7 @@ function processASTHTML(magicString, ast, constants) {
  * 
  * @param {*} ast 
  * @param {*} constants 
- * @returns {boolean | undefined}
+ * @returns {boolean | undefined | any}
  */
 function evaluateExpression(ast, constants) {
     switch (ast.type) {
