@@ -116,6 +116,7 @@ export default (usedExternal) => {
                 const matchEmptyString = content.match(new RegExp(`(const|export let) ${v.name} = ""`));
                 const matchEmptyArray = content.match(new RegExp(`(const|export let) ${v.name} = \\[\\]`));
                 const matchConstantString = content.match(new RegExp(`(const|export let) ${v.name} = "(.*?)";?\n`));
+                const matchInteger = content.match(new RegExp(`(const|export let) ${v.name} = (\\d+);?\n`));
 
                 const matchExport = content.match(new RegExp(`export let ${v.name} =`));
                 if (matchExport && !unwritten.includes(v.name)) {
@@ -140,6 +141,9 @@ export default (usedExternal) => {
                 }
                 if (matchConstantString) {
                     constants.set(v.name, { type: "Literal", value: matchConstantString[2] });
+                }
+                if (matchInteger) {
+                    constants.set(v.name, { type: "Literal", value: parseInt(matchInteger[2]) });
                 }
             }
 
@@ -348,12 +352,15 @@ function evaluateExpression(ast, constants) {
             }
             return undefined;
         case "Literal":
-            switch (ast.value) {
-                case "true":
-                    return true;
-                case "false":
-                    return false;
+            switch (typeof ast.value) {
+                case "boolean":
+                    return Boolean(ast.value);
+                case "number":
+                    return Number(ast.value);
+                case "string":
+                    return ast.value;
                 default:
+                    console.log("default literal", typeof ast.value, ast.value);
                     return undefined;
             }
         case "BinaryExpression":
@@ -363,11 +370,62 @@ function evaluateExpression(ast, constants) {
             if (leftValue === undefined || rightValue === undefined) {
                 return undefined;
             }
-            if (ast.operator === "===" || ast.operator === "==") {
+            if (ast.operator === "===") {
                 return leftValue === rightValue;
             }
-            if (ast.operator === "!==" || ast.operator === "!=") {
+            if (ast.operator === "==") {
+                return leftValue == rightValue;
+            }
+            if (ast.operator === "!==") {
                 return leftValue !== rightValue;
+            }
+            if (ast.operator === "!=") {
+                return leftValue != rightValue;
+            }
+            if (ast.operator === ">") {
+                return leftValue > rightValue;
+            }
+            if (ast.operator === ">=") {
+                return leftValue >= rightValue;
+            }
+            if (ast.operator === "<") {
+                return leftValue < rightValue;
+            }
+            if (ast.operator === "<=") {
+                return leftValue <= rightValue;
+            }
+            if (ast.operator === "+") {
+                return leftValue + rightValue;
+            }
+            if (ast.operator === "-") {
+                return leftValue - rightValue;
+            }
+            if (ast.operator === "*") {
+                return leftValue * rightValue;
+            }
+            if (ast.operator === "/") {
+                return leftValue / rightValue;
+            }
+            if (ast.operator === "%") {
+                return leftValue % rightValue;
+            }
+            if (ast.operator === "**") {
+                return leftValue ** rightValue;
+            }
+            if (ast.operator === "&") {
+                return leftValue & rightValue;
+            }
+            if (ast.operator === "|") {
+                return leftValue | rightValue;
+            }
+            if (ast.operator === "^") {
+                return leftValue ^ rightValue;
+            }
+            if (ast.operator === "<<") {
+                return leftValue << rightValue;
+            }
+            if (ast.operator === ">>") {
+                return leftValue >> rightValue;
             }
             return undefined;
         case "ConditionalExpression":
@@ -405,7 +463,20 @@ function processAttributes(magicString, attribute, constants) {
             //console.log("Attribute", attribute)
             if (attribute.value instanceof Array) {
                 attribute.value?.forEach((value) => {
-                    processASTHTML(magicString, value, constants);
+                    if (value.type === 'MustacheTag') {
+                        const result = evaluateExpression(value.expression, constants);
+                        if (typeof result === 'string') {
+                            //replace expression with string
+                            magicString.overwrite(value.expression.start, value.expression.end, `"${result}"`);
+                        } else if (result === undefined) {
+                            return;
+                        } else {
+                            // replace expression with value
+                            magicString.overwrite(value.expression.start, value.expression.end, `${result}`);
+                        }
+                    } else {
+                        processASTHTML(magicString, value, constants);
+                    }
                 });
             }
             break;
@@ -422,6 +493,7 @@ function processAttributes(magicString, attribute, constants) {
                 //get rid of the attribute
                 magicString.remove(attribute.start, attribute.end);
             }
+            //TODO more here
             break;
         case "Animation":
         case "Transition":

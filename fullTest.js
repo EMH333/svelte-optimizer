@@ -64,7 +64,7 @@ const usedExternal = await scanDir("example-files");
 
 await esbuild
     .build({
-        entryPoints: ["example-files/entry.js"],
+        entryPoints: ["example-files/entry.js", "example-files/index.html"],
         mainFields: ["svelte", "browser", "module", "main"],
         bundle: true,
         minify: compare, // only minify if doing a comparison
@@ -73,6 +73,9 @@ await esbuild
         format: "esm",
         target: "es2019",
         outdir: "./dist",
+        loader: {
+            ".html": "copy",
+        },
         plugins: [
             esbuildSvelte({
                 preprocess: preprocess(usedExternal),
