@@ -358,7 +358,11 @@ function evaluateExpression(ast, constants) {
                 case "number":
                     return Number(ast.value);
                 case "string":
-                    return ast.value;
+                    if(ast.value === "") {
+                        return "";
+                    }
+                    //TODO investigate what breaks w/ non empty strings
+                //    return ast.value;
                 default:
                     console.log("default literal", typeof ast.value, ast.value);
                     return undefined;
