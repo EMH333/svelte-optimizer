@@ -9,7 +9,8 @@
     "preprocessor.js"
   ],
   "scripts": {
-    "test": "uvu test/ .*\\.mjs"
+    "test": "uvu test/ .*\\.mjs",
+    "compare": "node fullTest.js true"
   },
   "author": "",
   "license": "ISC",

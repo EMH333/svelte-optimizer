@@ -4,7 +4,7 @@ import { compile } from "svelte/compiler";
 
 export default (usedExternal) => {
     return {
-        
+
         script: ({ content, attributes, markup, filename }) => {
             //TODO unexport vars not used externally
 
@@ -197,38 +197,59 @@ function processASTHTML(magicString, ast, constants) {
             //console.log("MustacheTag", ast)
             break;
         case "IfBlock":
-            //console.log("IfBlock", ast.expression)
+            // deal with else if blocks correctly
+            if (ast.elseif === true) {
+                ast.end = ast.else ? ast.else.end : ast.children[ast.children.length - 1].end;
+            }
+
             const result = evaluateExpression(ast.expression, constants);
-            //processExpression(magicString, ast.expression, constants);
-            if (result === true) {
-                // we can get rid of the else or else if blocks
-                magicString.remove(ast.start, ast.children[0].start);
-                magicString.remove(ast.children[ast.children.length - 1].end, ast.end);
+            switch (result) {
+                case true:
+                    {
+                        // we can get rid of the else or else if blocks
+                        magicString.remove(ast.start, ast.children[0].start);
+                        magicString.remove(ast.children[ast.children.length - 1].end, ast.end);
+                    }
+                    break;
+                case false:
+                    {
+                        //TODO more work needed here to extract most optimization
+                        //we can get rid of the if block but need to look at the else if and else blocks
+                        if (ast.else?.children?.[0].elseif === true) {
+                            processASTHTML(magicString, ast.else.children[0], constants);
+                        }
+                        if (ast.else) {
+                            magicString.remove(ast.start, ast.else.children[0].start);
+                            magicString.remove(ast.else.children[ast.else.children.length - 1].end, ast.end);
+                            //set the else block as the ast we are looking at
+                            ast = ast.else;
+                        } else {
+                            magicString.remove(ast.start, ast.end);
+                            //can return directly, no need to evaluate children
+                            return;
+                        }
+                    }
+                    break;
+
+                case undefined:
+                    {
+                        //don't get rid of the if block but need to look at the else if blocks
+                        if (ast.else) {
+                            //weird hack to get rid of the else if block if it can be removed
+                            if (ast.else?.children?.[0].elseif === true) {
+                                ast.else.children[0].start = ast.children[ast.children.length - 1].end;
+                            }
+                            processASTHTML(magicString, ast.else, constants);
+                        }
+                    }
+                    break;
+                default:
+                    console.log("Unknown result", result);
+                    break;
             }
-            if (result === false) {
-                //TODO more work needed here to extract most optimization
-                //we can get rid of the if block but need to look at the else if and else blocks
-                if (ast.else?.children?.[0].elseif === true) {
-                    processASTHTML(magicString, ast.else.children[0], constants);
-                }
-                if (ast.else) {
-                    magicString.remove(ast.start, ast.else.children[0].start);
-                    magicString.remove(ast.else.children[ast.children.length - 1].end, ast.end);
-                    //set the else block as the ast we are looking at
-                    ast = ast.else;
-                } else {
-                    magicString.remove(ast.start, ast.end);
-                    //can return directly, no need to evaluate children
-                    return;
-                }
-            }
-            if (result === undefined) {
-                //TODO more work needed here to extract most optimization
-                //don't get rid of the if block but need to look at the else if blocks
-                // if (ast.else?.children?.[0].elseif === true) {
-                //     processASTHTML(magicString, ast.else.children[0], constants);
-                // }
-            }
+            break;
+        case "ElseBlock":
+            //This gets handled in the IfBlock section
             break;
         case "Window":
         case "Element":
@@ -243,7 +264,7 @@ function processASTHTML(magicString, ast, constants) {
         case "EachBlock":
             const expression = evaluateExpression(ast.expression, constants);
             if (Array.isArray(expression) && expression.length === 0) {
-                if(ast.else){
+                if (ast.else) {
                     magicString.remove(ast.start, ast.else.children[0].start);
                     magicString.remove(ast.else.children[ast.children.length - 1].end, ast.end);
                     //set the else block as the ast we are looking at
@@ -323,7 +344,7 @@ function evaluateExpression(ast, constants) {
             const leftValue = evaluateExpression(ast.left, constants);
             const rightValue = evaluateExpression(ast.right, constants);
             // can't do anything if we don't know the value of both sides
-            if(leftValue === undefined || rightValue === undefined) {
+            if (leftValue === undefined || rightValue === undefined) {
                 return undefined;
             }
             if (ast.operator === "===" || ast.operator === "==") {

@@ -11,7 +11,6 @@ const filename = process.argv[2];
 //read file
 const file = readFileSync(filename, "utf8");
 
-//TODO get this working with the new scanDir function
 //get directory file is in
 const dir = resolve(cwd(), filename).substring(0, resolve(cwd(), filename).lastIndexOf("/"));
 
@@ -20,4 +19,6 @@ const usedExternal = await scanDir(dir);
 //run svelte preprocess on it
 const { code } = await preprocess(file, [preprocessor(usedExternal)], { filename });
 
-console.log("\n\nCode:", code);
+console.log("Used External:", usedExternal);
+console.log("Code:");
+console.log(code);
