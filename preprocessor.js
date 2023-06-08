@@ -370,6 +370,20 @@ function evaluateExpression(ast, constants) {
                 return leftValue !== rightValue;
             }
             return undefined;
+        case "ConditionalExpression":
+            //again we can evaluate this as a boolean
+            const test = !!evaluateExpression(ast.test, constants);
+            if (test === true) {
+                return evaluateExpression(ast.consequent, constants);
+            }
+            if (test === false) {
+                return evaluateExpression(ast.alternate, constants);
+            }
+            return undefined;
+        case "MemberExpression":
+        case "CallExpression":
+            //Can't do much with these in the current iteration
+            return undefined;
         default:
             console.log("default expression", ast.type)
             break;
