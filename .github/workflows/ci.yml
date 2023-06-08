@@ -25,3 +25,4 @@ jobs:
       # Now install and run tests
       - run: npm ci
       - run: npm test
+      - run: npm run compare
