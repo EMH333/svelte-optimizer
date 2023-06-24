@@ -45,7 +45,7 @@ if (compare) {
             plugins: [
                 esbuildSvelte({
                     filterWarnings: (warning) => {
-                        if (warning.code === "a11y-click-events-have-key-events") {
+                        if (warning.code === "a11y-click-events-have-key-events" || warning.code === "a11y-no-static-element-interactions") {
                             return false;
                         }
                         return true;
@@ -97,7 +97,7 @@ await esbuild
             esbuildSvelte({
                 preprocess: preprocess(usedExternal),
                 filterWarnings: (warning) => {
-                    if (warning.code === "a11y-click-events-have-key-events") {
+                    if (warning.code === "a11y-click-events-have-key-events" || warning.code === "a11y-no-static-element-interactions") {
                         return false;
                     }
                     return true;

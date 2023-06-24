@@ -15,11 +15,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "esbuild": "^0.17.19",
+    "esbuild": "^0.18.7",
     "esbuild-svelte": "^0.7.3",
     "magic-string": "^0.30.0",
     "resolve.exports": "^2.0.0",
-    "svelte": "^3.59.1"
+    "svelte": "^4.0.0"
   },
   "devDependencies": {
     "simple-svelte-autocomplete": "^2.5.0",
