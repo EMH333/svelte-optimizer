@@ -172,7 +172,6 @@ function getWrittenAndUnwrittenVars(vars, usedExternal, filename) {
 }
 
 
-//TODO pass content to function and deal with it
 /**
  * 
  * @param {import("svelte/types/compiler/interfaces").Ast} ast 
@@ -358,11 +357,7 @@ function evaluateExpression(ast, constants) {
                 case "number":
                     return Number(ast.value);
                 case "string":
-                    if(ast.value === "") {
-                        return "";
-                    }
-                    //TODO investigate what breaks w/ non empty strings
-                //    return ast.value;
+                    return ast.value;
                 default:
                     console.log("default literal", typeof ast.value, ast.value);
                     return undefined;
@@ -434,7 +429,10 @@ function evaluateExpression(ast, constants) {
             return undefined;
         case "ConditionalExpression":
             //again we can evaluate this as a boolean
-            const test = !!evaluateExpression(ast.test, constants);
+            let test = evaluateExpression(ast.test, constants);
+            if(test !== undefined) {
+                test = !!test;
+            }
             if (test === true) {
                 return evaluateExpression(ast.consequent, constants);
             }
