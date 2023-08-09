@@ -89,3 +89,12 @@
 {:else}
   <p>Correct in Else</p>
 {/if}
+
+<!--check case where there is no else at the end-->
+{#if undefined}
+  <p>Correct</p>
+{:else if falseBool}
+  <p>Incorrect</p>
+{:else if "some string"}
+  <p>Correct</p>
+{/if}

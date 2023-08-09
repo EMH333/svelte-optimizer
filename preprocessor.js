@@ -148,7 +148,7 @@ export default (usedExternal) => {
             }
 
             content = dealWithAST(content, ast, unwritten, constants);
-            console.log(content);
+            //console.log(content);
             return { code: content };
         }
     };
@@ -230,7 +230,10 @@ function processASTHTML(magicString, ast, constants) {
                         // if this is an else if, then it needs to be converted to an :else, and the else needs to be removed
                         if (ast?.elseif) {
                             magicString.overwrite(ast.start, ast.children[0].start, "\n{:else}\n");
-                            magicString.overwrite(ast.children[ast.children.length - 1].end, ast.end, "\n");
+                            //we aren't really doing anything here if there is no else block
+                            if (ast.children[ast.children.length - 1].end !== ast.end) {
+                                magicString.overwrite(ast.children[ast.children.length - 1].end, ast.end, "\n");
+                            }
                         } else {
                             // we can get rid of the else or else if blocks
                             magicString.remove(ast.start, ast.children[0].start);
