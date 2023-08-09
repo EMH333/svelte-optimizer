@@ -53,9 +53,9 @@
 {:else if falseBool}
   <p>Incorrect</p>
 {:else if trueBool}
-  <p>Correct</p>
+  <p>Correct in Else</p>
   {#if trueBool}
-    <p>Inner_Correct</p>
+    <p>Inner_Correct in Else</p>
   {:else}
     <p>Incorrect</p>
   {/if}
@@ -67,9 +67,9 @@
 {#if trueBool && Math.random() > 0.5}
   <p>Correct</p>
 {:else if trueBool}
-  <p>Correct</p>
+  <p>Correct in Else</p>
   {#if trueBool}
-    <p>Inner_Correct</p>
+    <p>Inner_Correct in Else</p>
   {:else}
     <p>Incorrect</p>
   {/if}
@@ -77,4 +77,15 @@
   <p>Incorrect</p>
 {:else}
   <p>Incorrect</p>
+{/if}
+
+<!--only the last else if and else should remain-->
+{#if falseBool}
+  <p>Incorrect</p>
+{:else if falseBool}
+  <p>Incorrect</p>
+{:else if undefined}
+  <p>Correct</p>
+{:else}
+  <p>Correct in Else</p>
 {/if}

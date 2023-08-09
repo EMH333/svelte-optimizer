@@ -148,7 +148,7 @@ export default (usedExternal) => {
             }
 
             content = dealWithAST(content, ast, unwritten, constants);
-
+            console.log(content);
             return { code: content };
         }
     };
@@ -198,6 +198,7 @@ function dealWithAST(content, ast, unwritten, constants) {
  * @param {Map<String, any>} constants
  */
 function processASTHTML(magicString, ast, constants) {
+    //console.log(`\n\n${magicString.toString()}\n`, ast.elseif, ast.children?.length, ast.start, ast.end)
     switch (ast.type) {
         case "Text":
         case "Comment":
@@ -226,19 +227,40 @@ function processASTHTML(magicString, ast, constants) {
             switch (result) {
                 case true:
                     {
-                        // we can get rid of the else or else if blocks
-                        magicString.remove(ast.start, ast.children[0].start);
-                        magicString.remove(ast.children[ast.children.length - 1].end, ast.end);
+                        // if this is an else if, then it needs to be converted to an :else, and the else needs to be removed
+                        if (ast?.elseif) {
+                            magicString.overwrite(ast.start, ast.children[0].start, "\n{:else}\n");
+                            magicString.overwrite(ast.children[ast.children.length - 1].end, ast.end, "\n");
+                        } else {
+                            // we can get rid of the else or else if blocks
+                            magicString.remove(ast.start, ast.children[0].start);
+                            magicString.remove(ast.children[ast.children.length - 1].end, ast.end);
+                        }
                     }
                     break;
                 case false:
                     {
-                        //TODO more work needed here to extract most optimization
                         //we can get rid of the if block but need to look at the else if and else blocks
-                        if (ast.else?.children?.[0].elseif === true) {
+                        if (ast.else?.children?.[0].elseif === true && !ast?.elseif) {
+                            magicString.overwrite(ast.start, ast.else.children[0].expression.start, "\n{#if ");
+                            ast.else.children[0].start = ast.start;
+
+                            // if the child is not another if else block, then we can remove the else block
+                            if (ast.else.children[0].children[0].type !== "IfBlock" && ast.else.children[0].children[0].elseif !== true) {
+                                ast.else.children[0].elseif = false;
+                            }
+
                             processASTHTML(magicString, ast.else.children[0], constants);
-                        }
-                        if (ast.else) {
+                            return;
+                        } else if (ast.else?.children?.[0].elseif === true && ast?.elseif) {
+                            // instead of just being an independent if block, be an else if block
+                            magicString.overwrite(ast.start, ast.else.children[0].expression.start, "\n{:else if ");
+                            ast.else.children[0].start = ast.start;
+
+
+                            processASTHTML(magicString, ast.else.children[0], constants);
+                            return;
+                        } else if (ast.else) {
                             magicString.remove(ast.start, ast.else.children[0].start);
                             magicString.remove(ast.else.children[ast.else.children.length - 1].end, ast.end);
                             //set the else block as the ast we are looking at
@@ -430,7 +452,7 @@ function evaluateExpression(ast, constants) {
         case "ConditionalExpression":
             //again we can evaluate this as a boolean
             let test = evaluateExpression(ast.test, constants);
-            if(test !== undefined) {
+            if (test !== undefined) {
                 test = !!test;
             }
             if (test === true) {
