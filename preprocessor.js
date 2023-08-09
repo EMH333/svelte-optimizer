@@ -186,7 +186,13 @@ function dealWithAST(content, ast, unwritten, constants) {
 
     const magicString = new MagicString(content);
 
-    processASTHTML(magicString, html, constants);
+    try {
+        processASTHTML(magicString, html, constants);
+    } catch (e) {
+        //console.log("Original:\n", content, "-------------------------");
+        //console.log("Modified:\n", magicString.toString());
+        throw e;
+    }
 
     return magicString.toString();
 }
@@ -311,7 +317,7 @@ function processASTHTML(magicString, ast, constants) {
             if (Array.isArray(expression) && expression.length === 0) {
                 if (ast.else) {
                     magicString.remove(ast.start, ast.else.children[0].start);
-                    magicString.remove(ast.else.children[ast.children.length - 1].end, ast.end);
+                    magicString.remove(ast.else.children[ast.else.children.length - 1].end, ast.end);
                     //set the else block as the ast we are looking at
                     ast = ast.else;
                 } else {
