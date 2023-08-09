@@ -10,7 +10,8 @@
   ],
   "scripts": {
     "test": "uvu test/ .*\\.mjs",
-    "compare": "node fullTest.js true"
+    "compare": "node fullTest.js true",
+    "fuzz": "node buildFuzz.js && jsfuzz ./fuzz.cjs corpus --only-ascii=true --rss-limit-mb=6144"
   },
   "author": "",
   "license": "ISC",
@@ -22,6 +23,7 @@
     "svelte": "^4.1.0"
   },
   "devDependencies": {
+    "@gitlab-org/jsfuzz": "^1.2.2",
     "carbon-components-svelte": "^0.79.0",
     "simple-svelte-autocomplete": "^2.5.0",
     "uvu": "^0.5.6"
