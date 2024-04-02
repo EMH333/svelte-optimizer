@@ -371,6 +371,10 @@ function evaluateExpression(ast, constants) {
             if (left === true && ast.operator === "&&") {
                 return right;
             }
+            if ((left === undefined || right === undefined) && (ast.operator === "&&" || ast.operator === "||")) {
+                return undefined;
+            }
+            console.log("default logical", left, ast.operator, right)
             return undefined;
         case "UnaryExpression":
             const value = evaluateExpression(ast.argument, constants);
@@ -380,6 +384,10 @@ function evaluateExpression(ast, constants) {
             if (value === false && ast.operator === "!") {
                 return true;
             }
+            if (value === undefined && ast.operator === "!") {
+                return undefined;
+            }
+            console.log("default unary", value, ast.operator)
             return undefined;
         case "Literal":
             switch (typeof ast.value) {
