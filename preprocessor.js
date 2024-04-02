@@ -341,13 +341,19 @@ function processASTHTML(magicString, ast, constants) {
  * 
  * @param {*} ast 
  * @param {*} constants 
+ * @param {boolean} undefinedAsFalse
  * @returns {boolean | undefined | any}
  */
-function evaluateExpression(ast, constants) {
+function evaluateExpression(ast, constants, undefinedAsFalse = false) {
     switch (ast.type) {
         case "Identifier":
             if (constants.has(ast.name) && constants.get(ast.name).type === "Literal") {
-                return constants.get(ast.name).value;
+                let val = constants.get(ast.name).value;
+                // we know we have defined it as a constant, and the caller is asking for a boolean
+                if (val === undefined && undefinedAsFalse) {
+                    return false;
+                }
+                return val;
             }
             if (constants.has(ast.name) && constants.get(ast.name).type === "EmptyArray") {
                 return [];
@@ -357,8 +363,8 @@ function evaluateExpression(ast, constants) {
             }
             return undefined;
         case "LogicalExpression":
-            const left = evaluateExpression(ast.left, constants);
-            const right = evaluateExpression(ast.right, constants);
+            const left = evaluateExpression(ast.left, constants, undefinedAsFalse = true);
+            const right = evaluateExpression(ast.right, constants, undefinedAsFalse = true);
             if (left === true && ast.operator === "||") {
                 return true;
             }
@@ -377,7 +383,7 @@ function evaluateExpression(ast, constants) {
             console.log("default logical", left, ast.operator, right)
             return undefined;
         case "UnaryExpression":
-            const value = evaluateExpression(ast.argument, constants);
+            const value = evaluateExpression(ast.argument, constants, undefinedAsFalse = true);
             if (value === true && ast.operator === "!") {
                 return false;
             }
@@ -402,8 +408,8 @@ function evaluateExpression(ast, constants) {
                     return undefined;
             }
         case "BinaryExpression":
-            const leftValue = evaluateExpression(ast.left, constants);
-            const rightValue = evaluateExpression(ast.right, constants);
+            const leftValue = evaluateExpression(ast.left, constants, undefinedAsFalse = true);
+            const rightValue = evaluateExpression(ast.right, constants, undefinedAsFalse = true);
             // can't do anything if we don't know the value of both sides
             if (leftValue === undefined || rightValue === undefined) {
                 return undefined;
@@ -468,7 +474,7 @@ function evaluateExpression(ast, constants) {
             return undefined;
         case "ConditionalExpression":
             //again we can evaluate this as a boolean
-            let test = evaluateExpression(ast.test, constants);
+            let test = evaluateExpression(ast.test, constants, undefinedAsFalse = true);
             if (test !== undefined) {
                 test = !!test;
             }
