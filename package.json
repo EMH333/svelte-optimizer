@@ -16,15 +16,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "esbuild": "^0.19.0",
-    "esbuild-svelte": "^0.7.4",
+    "esbuild": "^0.20.2",
+    "esbuild-svelte": "^0.8.0",
     "magic-string": "^0.30.0",
     "resolve.exports": "^2.0.0",
-    "svelte": "^4.1.0"
+    "svelte": "^4.2.0"
   },
   "devDependencies": {
     "@gitlab-org/jsfuzz": "^1.2.2",
-    "carbon-components-svelte": "^0.79.0",
+    "carbon-components-svelte": "^0.85.0",
     "simple-svelte-autocomplete": "^2.5.0",
     "uvu": "^0.5.6"
   }
